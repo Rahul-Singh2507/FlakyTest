@@ -1,0 +1,75 @@
+import path from "path";
+import { paths } from "../config/env.js";
+import { findRun, listRuns } from "../models/runModel.js";
+import { findResult, listResults } from "../models/testResultModel.js";
+import { listRepairs } from "../models/repairModel.js";
+import { hasRunChannel, subscribeToRun } from "../services/execution/runEvents.js";
+import { startRun } from "../services/execution/runService.js";
+import { siteFromUrl } from "../services/sites/siteExplorer.js";
+import { getTicket } from "../services/tickets/ticketService.js";
+import { ApiError } from "../utils/apiError.js";
+import { ApiResponse } from "../utils/apiResponse.js";
+import { parseOrThrow } from "../validators/parseOrThrow.js";
+import { screenshotQuerySchema, startRunSchema } from "../validators/runSchemas.js";
+
+const requireRun = (runId) => {
+  const run = findRun(runId);
+  if (!run) {
+    throw ApiError.notFound(`Run ${runId} not found`);
+  }
+  return run;
+};
+
+export async function startNewRun(req, res) {
+  const { ticketId, siteUrl, pages, credentials, ...options } = parseOrThrow(startRunSchema, req.body);
+  const ticket = await getTicket(ticketId);
+  if (ticket.acceptanceCriteria.length === 0) {
+    throw ApiError.badRequest(`Ticket ${ticket.id} has no acceptance criteria. Add them as a bullet list under an "Acceptance Criteria" heading in its description`);
+  }
+  ApiResponse.success(res, { runId: startRun(ticket, siteFromUrl(siteUrl, pages, credentials), options) }, 202);
+}
+
+export function listRunHistory(req, res) {
+  ApiResponse.success(res, listRuns());
+}
+
+export function showRun(req, res) {
+  const run = requireRun(req.params.id);
+  ApiResponse.success(res, { ...run, results: listResults(run.id) });
+}
+
+export function listRunRepairs(req, res) {
+  requireRun(req.params.id);
+  ApiResponse.success(res, listRepairs(req.params.id));
+}
+
+export function sendScreenshot(req, res) {
+  const { variant } = parseOrThrow(screenshotQuerySchema, req.query);
+  const result = findResult(req.params.id, req.params.testId);
+  const screenshotPath = result?.[variant === "after" ? "afterScreenshotPath" : "screenshotPath"];
+  if (!screenshotPath) {
+    throw ApiError.notFound("Screenshot not found");
+  }
+  res.sendFile(path.join(paths.screenshots, screenshotPath));
+}
+
+export function streamRunEvents(req, res) {
+  const run = requireRun(req.params.id);
+  res.set({ "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
+  res.flushHeaders();
+  const send = (event) => res.write(`data: ${JSON.stringify(event)}\n\n`);
+
+  if (!hasRunChannel(run.id)) {
+    send({ type: "run-completed", runId: run.id, status: run.status, error: run.errorMessage });
+    res.end();
+    return;
+  }
+
+  const unsubscribe = subscribeToRun(run.id, (event) => {
+    send(event);
+    if (event.type === "run-completed") {
+      res.end();
+    }
+  });
+  req.on("close", unsubscribe);
+}
