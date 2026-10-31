@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { generatedSuiteSchema } from "../../validators/testSchemas.js";
-import { generateDeterministicTest } from "./deterministicGenerator.js";
-import { generateJson, isLlmConfigured, summarizeLlmError } from "../integrations/llmClient.js";
+import { generateJson, summarizeLlmError } from "../integrations/llmClient.js";
 import { describeTarget } from "../execution/locators.js";
 import { exploreSite } from "../sites/siteExplorer.js";
 import { renderSpec } from "./specRenderer.js";
@@ -260,24 +259,8 @@ const failedGroqSuite = (ticket, error) =>
     generationNote: `Groq could not write this test: ${summarizeLlmError(error)}`,
   }));
 
-const deterministicSuite = (ticket) =>
-  ticket.acceptanceCriteria.map((criterion, criterionIndex) => {
-    const test = generateDeterministicTest(criterion);
-    return {
-      criterionIndex,
-      ...test,
-      generatedBy: "deterministic",
-      generationNote:
-        test.steps.length > 0
-          ? "GROQ_API_KEY is not set, so a built-in template was used"
-          : "GROQ_API_KEY is not set and no built-in template matches this criterion",
-    };
-  });
-
 export async function generateTests(ticket, site) {
-  const tests = isLlmConfigured()
-    ? await generateSuiteWithGroq(ticket, site).catch((error) => failedGroqSuite(ticket, error))
-    : deterministicSuite(ticket);
+  const tests = await generateSuiteWithGroq(ticket, site).catch((error) => failedGroqSuite(ticket, error));
   return tests
     .toSorted((left, right) => left.criterionIndex - right.criterionIndex)
     .map((test) => ({

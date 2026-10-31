@@ -9,7 +9,6 @@ import { findSuite, saveSuite } from "../../models/testSuiteModel.js";
 import { paths, settings } from "../../config/env.js";
 import { findReplacement } from "../healing/healer.js";
 import { isJiraConfigured, postJiraComment } from "../integrations/jiraClient.js";
-import { isLlmConfigured } from "../integrations/llmClient.js";
 import { describeInteractionTarget } from "./locators.js";
 import { emitRunEvent } from "./runEvents.js";
 import { renderSpec } from "../generation/specRenderer.js";
@@ -129,7 +128,8 @@ const isReusableSuite = (suite, ticket, site) =>
       test.formatVersion === SUITE_FORMAT_VERSION &&
       test.siteName === site.name &&
       test.criterion === ticket.acceptanceCriteria[test.criterionIndex] &&
-      (!isLlmConfigured() || (test.generatedBy === "groq" && test.steps.length > 0))
+      test.generatedBy === "groq" &&
+      test.steps.length > 0
   );
 
 async function executeRun(runId, ticket, site, { repeat, regenerate }) {

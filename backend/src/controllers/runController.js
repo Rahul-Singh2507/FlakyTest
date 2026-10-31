@@ -5,6 +5,7 @@ import { findResult, listResults } from "../models/testResultModel.js";
 import { listRepairs } from "../models/repairModel.js";
 import { hasRunChannel, subscribeToRun } from "../services/execution/runEvents.js";
 import { startRun } from "../services/execution/runService.js";
+import { isLlmConfigured } from "../services/integrations/llmClient.js";
 import { siteFromUrl } from "../services/sites/siteExplorer.js";
 import { getTicket } from "../services/tickets/ticketService.js";
 import { ApiError } from "../utils/apiError.js";
@@ -22,6 +23,9 @@ const requireRun = (runId) => {
 
 export async function startNewRun(req, res) {
   const { ticketId, siteUrl, pages, credentials, ...options } = parseOrThrow(startRunSchema, req.body);
+  if (!isLlmConfigured()) {
+    throw new ApiError(503, "GROQ_API_KEY is not set. Test generation needs Groq, add the key to backend/.env");
+  }
   const ticket = await getTicket(ticketId);
   if (ticket.acceptanceCriteria.length === 0) {
     throw ApiError.badRequest(`Ticket ${ticket.id} has no acceptance criteria. Add them as a bullet list under an "Acceptance Criteria" heading in its description`);
