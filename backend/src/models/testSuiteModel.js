@@ -1,15 +1,23 @@
-import { db } from "../config/database.js";
+import mongoose from "mongoose";
 
-function findSuite(ticketId) {
-  const row = db.prepare("SELECT tests FROM test_suites WHERE ticketId = ?").get(ticketId);
-  return row && JSON.parse(row.tests);
+const testSuiteSchema = new mongoose.Schema(
+  {
+    _id: String,
+    tests: { type: mongoose.Schema.Types.Mixed, required: true },
+    updatedAt: { type: Date, required: true },
+  },
+  { collection: "test_suites" }
+);
+
+const TestSuite = mongoose.model("TestSuite", testSuiteSchema);
+
+async function findSuite(ticketId) {
+  const suite = await TestSuite.findById(ticketId).lean();
+  return suite?.tests;
 }
 
-function saveSuite(ticketId, tests) {
-  db.prepare(
-    `INSERT INTO test_suites (ticketId, tests, updatedAt) VALUES (?, ?, ?)
-     ON CONFLICT(ticketId) DO UPDATE SET tests = excluded.tests, updatedAt = excluded.updatedAt`
-  ).run(ticketId, JSON.stringify(tests), new Date().toISOString());
+async function saveSuite(ticketId, tests) {
+  await TestSuite.updateOne({ _id: ticketId }, { tests, updatedAt: new Date() }, { upsert: true });
 }
 
 export { findSuite, saveSuite };

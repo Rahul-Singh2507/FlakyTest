@@ -13,8 +13,8 @@ import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { screenshotQuerySchema, startRunSchema } from "../validators/runSchemas.js";
 
-const requireRun = (runId) => {
-  const run = findRun(runId);
+const requireRun = async (runId) => {
+  const run = await findRun(runId);
   if (!run) {
     throw ApiError.notFound(`Run ${runId} not found`);
   }
@@ -34,30 +34,30 @@ async function startNewRun(req, res) {
   if (ticket.acceptanceCriteria.length === 0) {
     throw ApiError.badRequest(`Ticket ${ticket.id} has no acceptance criteria. Add them as a bullet list under an "Acceptance Criteria" heading in its description`);
   }
-  ApiResponse.success(res, { runId: startRun(ticket, siteFromUrl(siteUrl, pages, credentials), options) }, 202);
+  ApiResponse.success(res, { runId: await startRun(ticket, siteFromUrl(siteUrl, pages, credentials), options) }, 202);
 }
 
-function listRunHistory(req, res) {
-  ApiResponse.success(res, listRuns());
+async function listRunHistory(req, res) {
+  ApiResponse.success(res, await listRuns());
 }
 
-function showRun(req, res) {
-  const run = requireRun(req.params.id);
-  ApiResponse.success(res, { ...run, results: listResults(run.id) });
+async function showRun(req, res) {
+  const run = await requireRun(req.params.id);
+  ApiResponse.success(res, { ...run, results: await listResults(run.id) });
 }
 
-function listRunRepairs(req, res) {
-  requireRun(req.params.id);
-  ApiResponse.success(res, listRepairs(req.params.id));
+async function listRunRepairs(req, res) {
+  await requireRun(req.params.id);
+  ApiResponse.success(res, await listRepairs(req.params.id));
 }
 
-function sendScreenshot(req, res) {
+async function sendScreenshot(req, res) {
   const parsed = screenshotQuerySchema.safeParse(req.query);
   if (!parsed.success) {
     throw ApiError.badRequest(z.prettifyError(parsed.error));
   }
   const { variant } = parsed.data;
-  const result = findResult(req.params.id, req.params.testId);
+  const result = await findResult(req.params.id, req.params.testId);
   const screenshotPath = result?.[variant === "after" ? "afterScreenshotPath" : "screenshotPath"];
   if (!screenshotPath) {
     throw ApiError.notFound("Screenshot not found");
@@ -65,8 +65,8 @@ function sendScreenshot(req, res) {
   res.sendFile(path.join(paths.screenshots, screenshotPath));
 }
 
-function streamRunEvents(req, res) {
-  const run = requireRun(req.params.id);
+async function streamRunEvents(req, res) {
+  const run = await requireRun(req.params.id);
   res.set({ "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
   res.flushHeaders();
   const send = (event) => res.write(`data: ${JSON.stringify(event)}\n\n`);

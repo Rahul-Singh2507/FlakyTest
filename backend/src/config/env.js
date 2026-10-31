@@ -11,6 +11,7 @@ const blankAsMissing = (schema) => z.preprocess((value) => (value === "" ? undef
 
 const envSchema = z.object({
   PORT: blankAsMissing(z.coerce.number().int().positive().default(3001)),
+  MONGODB_URI: blankAsMissing(z.string()),
   GROQ_API_KEY: blankAsMissing(z.string().optional()),
   JIRA_BASE_URL: blankAsMissing(z.url().optional()),
   JIRA_EMAIL: blankAsMissing(z.string().optional()),
@@ -22,7 +23,6 @@ const env = envSchema.parse(process.env);
 
 const paths = {
   backendRoot,
-  database: path.join(backendRoot, "data", "flaketest.db"),
   mockTicket: path.join(backendRoot, "data", "mock-ticket.json"),
   mockTickets: path.join(backendRoot, "data", "mock-tickets"),
   screenshots: path.join(backendRoot, "data", "screenshots"),
@@ -30,6 +30,9 @@ const paths = {
 
 const settings = {
   port: env.PORT,
+  mongo: {
+    uri: env.MONGODB_URI,
+  },
   groq: {
     apiKey: env.GROQ_API_KEY,
   },

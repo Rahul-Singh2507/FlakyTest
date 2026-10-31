@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { chromium } from "playwright";
-import { insertRepair } from "../../models/repairModel.js";
+import { insertRepairs } from "../../models/repairModel.js";
 import { attachTicketToRun, createRun, finishRun } from "../../models/runModel.js";
 import { insertTestResult } from "../../models/testResultModel.js";
 import { findSuite, saveSuite } from "../../models/testSuiteModel.js";
@@ -59,7 +59,7 @@ async function healAndRerun(browser, runId, site, test, firstAttempt) {
   }
 
   const outcome = attempt.passed ? "applied" : "discarded";
-  [...repairs.map((repair) => ({ ...repair, outcome })), ...(rejection ? [rejection] : [])].forEach(insertRepair);
+  await insertRepairs([...repairs.map((repair) => ({ ...repair, outcome })), ...(rejection ? [rejection] : [])]);
   const rejectionNote = !rejection
     ? ""
     : rejection.newLocator === "none"
@@ -135,13 +135,13 @@ const isReusableSuite = (suite, ticket, site) =>
   );
 
 async function executeRun(runId, ticket, site, { repeat, regenerate }) {
-  const storedSuite = regenerate ? null : findSuite(ticket.id);
+  const storedSuite = regenerate ? null : await findSuite(ticket.id);
   const savedSuite = storedSuite && isReusableSuite(storedSuite, ticket, site) ? storedSuite : null;
   const suiteSource = savedSuite ? "saved" : "generated";
   emitRunEvent(runId, { type: "generating-tests", suiteSource });
   const tests = savedSuite ?? (await generateTests(ticket, site));
-  saveSuite(ticket.id, tests);
-  attachTicketToRun(runId, ticket, suiteSource);
+  await saveSuite(ticket.id, tests);
+  await attachTicketToRun(runId, ticket, suiteSource);
   emitRunEvent(runId, {
     type: "tests-generated",
     tests: tests.map((test, testIndex) => ({
@@ -171,7 +171,7 @@ async function executeRun(runId, ticket, site, { repeat, regenerate }) {
         ...outcome,
         specCode: renderSpec({ ...test, steps: outcome.steps }, site),
       };
-      insertTestResult(result);
+      await insertTestResult(result);
       results.push(result);
       emitRunEvent(runId, {
         type: "test-completed",
@@ -187,7 +187,7 @@ async function executeRun(runId, ticket, site, { repeat, regenerate }) {
   }
 
   const healedSteps = new Map(results.filter((result) => result.status === "healed").map((result) => [result.testIndex, result.steps]));
-  saveSuite(
+  await saveSuite(
     ticket.id,
     tests.map((test, testIndex) =>
       healedSteps.has(testIndex) ? { ...test, steps: healedSteps.get(testIndex), specCode: renderSpec({ ...test, steps: healedSteps.get(testIndex) }, site) } : test
@@ -199,19 +199,20 @@ async function executeRun(runId, ticket, site, { repeat, regenerate }) {
   }
 }
 
-function startRun(ticket, site, options) {
+async function startRun(ticket, site, options) {
   const runId = randomUUID();
-  createRun({ id: runId, ticketId: ticket.id, repeatCount: options.repeat, siteName: site.name, siteUrl: site.baseUrl });
+  await createRun({ id: runId, ticketId: ticket.id, repeatCount: options.repeat, siteName: site.name, siteUrl: site.baseUrl });
   emitRunEvent(runId, { type: "run-started", ticketId: ticket.id });
   executeRun(runId, ticket, site, options)
-    .then(() => {
-      finishRun(runId, "completed");
+    .then(async () => {
+      await finishRun(runId, "completed");
       emitRunEvent(runId, { type: "run-completed", status: "completed" });
     })
-    .catch((error) => {
-      finishRun(runId, "error", error.message);
+    .catch(async (error) => {
+      await finishRun(runId, "error", error.message);
       emitRunEvent(runId, { type: "run-completed", status: "error", error: error.message });
-    });
+    })
+    .catch(console.error);
   return runId;
 }
 

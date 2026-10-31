@@ -12,10 +12,10 @@ import asyncHandler from "../middleware/asyncHandler.js";
 const runRouter = Router();
 
 runRouter.post("/", asyncHandler(startNewRun));
-runRouter.get("/", listRunHistory);
-runRouter.get("/:id", showRun);
-runRouter.get("/:id/repairs", listRunRepairs);
-runRouter.get("/:id/screenshots/:testId", sendScreenshot);
-runRouter.get("/:id/events", streamRunEvents);
+runRouter.get("/", asyncHandler(listRunHistory));
+runRouter.get("/:id", asyncHandler(showRun));
+runRouter.get("/:id/repairs", asyncHandler(listRunRepairs));
+runRouter.get("/:id/screenshots/:testId", asyncHandler(sendScreenshot));
+runRouter.get("/:id/events", asyncHandler(streamRunEvents));
 
 export { runRouter };
