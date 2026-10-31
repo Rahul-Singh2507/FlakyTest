@@ -25,13 +25,15 @@ async function loadMockTicket(ticketId) {
   return ticket;
 }
 
-const fetchJiraOrMock = (ticketId) =>
-  fetchJiraTicket(ticketId)
+const fetchJiraOrMock = (ticketId, jiraCredentials) =>
+  fetchJiraTicket(ticketId, jiraCredentials)
     .then((ticket) => ({ ...ticket, source: "jira" }))
     .catch((error) => (error.status === 404 ? loadMockTicket(ticketId) : Promise.reject(error)));
 
-async function getTicket(ticketId) {
-  return isJiraConfigured() ? fetchJiraOrMock(ticketId) : loadMockTicket(ticketId);
+async function getTicket(ticketId, jiraCredentials) {
+  return isJiraConfigured(jiraCredentials)
+    ? fetchJiraOrMock(ticketId, jiraCredentials)
+    : loadMockTicket(ticketId);
 }
 
 export { listMockTickets, getTicket };

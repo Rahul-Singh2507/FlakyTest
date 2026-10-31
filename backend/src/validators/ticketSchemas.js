@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { jiraCredentialsSchema } from "./authSchemas.js";
 
 const ticketSchema = z.object({
   id: z.string().min(1),
@@ -13,4 +14,14 @@ const ticketIdSchema = z
   .regex(/^[A-Za-z][A-Za-z0-9]*-\d+$/, "Ticket ID must look like PROJ-123")
   .transform((value) => value.toUpperCase());
 
-export { ticketSchema, ticketIdSchema };
+const ticketLookupSchema = z.object({
+  ticketId: ticketIdSchema,
+  jiraCredentials: jiraCredentialsSchema.optional(),
+});
+
+const ticketSearchSchema = z.object({
+  jiraCredentials: jiraCredentialsSchema,
+  nextPageToken: z.string().min(1).max(2048).optional(),
+});
+
+export { ticketSchema, ticketIdSchema, ticketLookupSchema, ticketSearchSchema };

@@ -1,13 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
-import { fetchJson } from './api/client.js'
+import { fetchJson } from '../../shared/api/client.js'
 import { RepairLog } from './components/results/RepairLog.jsx'
 import { ResultsTable } from './components/results/ResultsTable.jsx'
 import { RunHistory } from './components/run/RunHistory.jsx'
 import { RunProgress } from './components/run/RunProgress.jsx'
 import { RunSetup } from './components/run/RunSetup.jsx'
+import { JiraSettings } from '../integrations/JiraSettings.jsx'
 
-function App() {
+function Dashboard({
+  user,
+  onLogout,
+  jiraCredentials,
+  jiraPostComments,
+  onJiraCredentialsChange,
+  onJiraPostCommentsChange,
+}) {
   const [view, setView] = useState('main')
+  const [showJiraSettings, setShowJiraSettings] = useState(false)
   const [events, setEvents] = useState([])
   const [runDetail, setRunDetail] = useState(null)
   const [repairs, setRepairs] = useState([])
@@ -60,9 +69,8 @@ function App() {
     <div className="dashboard">
       <header className="header">
         <h1>
-          FlakeTest{' '}
-          <span className="header-tagline">
-            Jira ticket → generated UI tests → self-healing runs
+          <span className="header-brand">
+            <span className="header-name">SentinelQA</span>
           </span>
         </h1>
         <nav className="nav">
@@ -81,13 +89,44 @@ function App() {
             History
           </button>
         </nav>
+        <div className="account-menu">
+          <div className="account-identity">
+            <span className="account-name">{user.name}</span>
+            <span className="account-email">{user.email}</span>
+          </div>
+          <button
+            type="button"
+            className="nav-btn"
+            onClick={() => setShowJiraSettings(true)}
+          >
+            {jiraCredentials ? 'Jira connected' : 'Connect Jira'}
+          </button>
+          <button type="button" className="nav-btn" onClick={onLogout}>
+            Log out
+          </button>
+        </div>
       </header>
+
+      {showJiraSettings && (
+        <JiraSettings
+          credentials={jiraCredentials}
+          postResults={jiraPostComments}
+          onConnect={onJiraCredentialsChange}
+          onDisconnect={() => onJiraCredentialsChange(null)}
+          onPostResultsChange={onJiraPostCommentsChange}
+          onClose={() => setShowJiraSettings(false)}
+        />
+      )}
 
       {view === 'history' && <RunHistory onSelectRun={openRun} />}
 
       {view === 'main' && (
         <main className="main">
-          <RunSetup onRunStarted={watchRun} />
+          <RunSetup
+            jiraCredentials={jiraCredentials}
+            jiraPostComments={jiraPostComments}
+            onRunStarted={watchRun}
+          />
 
           <div ref={runOutputRef} className="run-output">
             {loadError && <p className="error-banner">{loadError}</p>}
@@ -110,4 +149,4 @@ function App() {
   )
 }
 
-export { App }
+export { Dashboard }

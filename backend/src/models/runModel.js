@@ -5,6 +5,7 @@ const runSchema = new mongoose.Schema(
   {
     _id: String,
     ticketId: { type: String, required: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     ticket: { type: mongoose.Schema.Types.Mixed, default: null },
     status: { type: String, required: true, default: "running" },
     suiteSource: { type: String, default: null },
@@ -22,8 +23,8 @@ const Run = mongoose.model("Run", runSchema);
 
 const countWhen = (condition) => ({ $sum: { $cond: [condition, 1, 0] } });
 
-async function createRun({ id, ticketId, repeatCount, siteName, siteUrl }) {
-  await Run.create({ _id: id, ticketId, repeatCount, siteName, siteUrl, createdAt: new Date() });
+async function createRun({ id, userId, ticketId, repeatCount, siteName, siteUrl }) {
+  await Run.create({ _id: id, userId, ticketId, repeatCount, siteName, siteUrl, createdAt: new Date() });
 }
 
 async function attachTicketToRun(runId, ticket, suiteSource) {
@@ -34,8 +35,9 @@ async function finishRun(runId, status, errorMessage = null) {
   await Run.updateOne({ _id: runId }, { status, errorMessage, completedAt: new Date() });
 }
 
-async function listRuns() {
+async function listRuns(userId) {
   const runs = await Run.aggregate([
+    { $match: { userId: new mongoose.Types.ObjectId(userId) } },
     { $sort: { createdAt: -1 } },
     { $limit: 100 },
     {
@@ -65,8 +67,8 @@ async function listRuns() {
   return runs.map(withId);
 }
 
-async function findRun(runId) {
-  const run = await Run.findById(runId).lean();
+async function findRun(runId, userId) {
+  const run = await Run.findOne({ _id: runId, userId }).lean();
   return run && withId(run);
 }
 

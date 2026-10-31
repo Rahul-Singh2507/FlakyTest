@@ -1,4 +1,4 @@
-import { StatusBadge } from '../common/StatusBadge.jsx'
+import { StatusBadge } from '../../../../shared/components/StatusBadge.jsx'
 
 const HEALING_EVENT_TYPES = new Set([
   'healing-started',

@@ -1,4 +1,4 @@
-import { StatusBadge } from '../common/StatusBadge.jsx'
+import { StatusBadge } from '../../../../shared/components/StatusBadge.jsx'
 
 const screenshotUrl = (runId, resultId, variant) =>
   `/api/runs/${runId}/screenshots/${resultId}?variant=${variant}`

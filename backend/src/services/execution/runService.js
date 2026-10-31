@@ -110,14 +110,14 @@ async function runSingleTest(browser, runId, site, test, testIndex, repeatCount)
   };
 }
 
-async function postResultsToJira(runId, ticket, results) {
+async function postResultsToJira(runId, ticket, results, jiraCredentials) {
   const counts = results.reduce((tally, result) => ({ ...tally, [result.status]: (tally[result.status] ?? 0) + 1 }), {});
   const summary = `FlakeTest run ${runId.slice(0, 8)}: ${counts.passed ?? 0} passed, ${counts.healed ?? 0} healed, ${counts.failed ?? 0} failed`;
   const lines = results.map(
     (result) =>
       `${result.status.toUpperCase()}${result.flaky ? " (FLAKY)" : ""} - ${result.testName}${result.errorMessage ? `: ${result.errorMessage}` : ""}`
   );
-  await postJiraComment(ticket.id, summary, lines)
+  await postJiraComment(ticket.id, summary, lines, jiraCredentials)
     .then(() => emitRunEvent(runId, { type: "jira-comment-posted" }))
     .catch((error) => emitRunEvent(runId, { type: "jira-comment-failed", reason: error.message }));
 }
@@ -134,7 +134,13 @@ const isReusableSuite = (suite, ticket, site) =>
       test.steps.length > 0
   );
 
-async function executeRun(runId, ticket, site, { repeat, regenerate }) {
+async function executeRun(
+  runId,
+  ticket,
+  site,
+  { repeat, regenerate, postJiraComment: shouldPostJiraComment = settings.jira.postComment },
+  jiraCredentials
+) {
   const storedSuite = regenerate ? null : await findSuite(ticket.id);
   const savedSuite = storedSuite && isReusableSuite(storedSuite, ticket, site) ? storedSuite : null;
   const suiteSource = savedSuite ? "saved" : "generated";
@@ -194,16 +200,23 @@ async function executeRun(runId, ticket, site, { repeat, regenerate }) {
     )
   );
 
-  if (settings.jira.postComment && isJiraConfigured() && ticket.source === "jira") {
-    await postResultsToJira(runId, ticket, results);
+  if (shouldPostJiraComment && isJiraConfigured(jiraCredentials) && ticket.source === "jira") {
+    await postResultsToJira(runId, ticket, results, jiraCredentials);
   }
 }
 
-async function startRun(ticket, site, options) {
+async function startRun(ticket, site, options, userId, jiraCredentials) {
   const runId = randomUUID();
-  await createRun({ id: runId, ticketId: ticket.id, repeatCount: options.repeat, siteName: site.name, siteUrl: site.baseUrl });
+  await createRun({
+    id: runId,
+    userId,
+    ticketId: ticket.id,
+    repeatCount: options.repeat,
+    siteName: site.name,
+    siteUrl: site.baseUrl,
+  });
   emitRunEvent(runId, { type: "run-started", ticketId: ticket.id });
-  executeRun(runId, ticket, site, options)
+  executeRun(runId, ticket, site, options, jiraCredentials)
     .then(async () => {
       await finishRun(runId, "completed");
       emitRunEvent(runId, { type: "run-completed", status: "completed" });

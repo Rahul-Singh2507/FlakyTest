@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { fetchJson } from '../../api/client.js'
-import { StatusBadge } from '../common/StatusBadge.jsx'
+import { fetchJson } from '../../../../shared/api/client.js'
+import { StatusBadge } from '../../../../shared/components/StatusBadge.jsx'
 
 function RunHistory({ onSelectRun }) {
   const [runs, setRuns] = useState([])

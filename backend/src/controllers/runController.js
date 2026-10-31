@@ -13,8 +13,8 @@ import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { screenshotQuerySchema, startRunSchema } from "../validators/runSchemas.js";
 
-const requireRun = async (runId) => {
-  const run = await findRun(runId);
+const requireRun = async (runId, userId) => {
+  const run = await findRun(runId, userId);
   if (!run) {
     throw ApiError.notFound(`Run ${runId} not found`);
   }
@@ -26,32 +26,45 @@ async function startNewRun(req, res) {
   if (!parsed.success) {
     throw ApiError.badRequest(z.prettifyError(parsed.error));
   }
-  const { ticketId, siteUrl, pages, credentials, ...options } = parsed.data;
+  const { ticketId, siteUrl, pages, credentials, jiraCredentials, ...options } = parsed.data;
   if (!isLlmConfigured()) {
     throw new ApiError(503, "GROQ_API_KEY is not set. Test generation needs Groq, add the key to backend/.env");
   }
-  const ticket = await getTicket(ticketId);
+  const ticket = await getTicket(ticketId, jiraCredentials);
   if (ticket.acceptanceCriteria.length === 0) {
     throw ApiError.badRequest(`Ticket ${ticket.id} has no acceptance criteria. Add them as a bullet list under an "Acceptance Criteria" heading in its description`);
   }
-  ApiResponse.success(res, { runId: await startRun(ticket, siteFromUrl(siteUrl, pages, credentials), options) }, 202);
+  ApiResponse.success(
+    res,
+    {
+      runId: await startRun(
+        ticket,
+        siteFromUrl(siteUrl, pages, credentials),
+        options,
+        req.user.id,
+        jiraCredentials
+      ),
+    },
+    202
+  );
 }
 
 async function listRunHistory(req, res) {
-  ApiResponse.success(res, await listRuns());
+  ApiResponse.success(res, await listRuns(req.user.id));
 }
 
 async function showRun(req, res) {
-  const run = await requireRun(req.params.id);
+  const run = await requireRun(req.params.id, req.user.id);
   ApiResponse.success(res, { ...run, results: await listResults(run.id) });
 }
 
 async function listRunRepairs(req, res) {
-  await requireRun(req.params.id);
+  await requireRun(req.params.id, req.user.id);
   ApiResponse.success(res, await listRepairs(req.params.id));
 }
 
 async function sendScreenshot(req, res) {
+  await requireRun(req.params.id, req.user.id);
   const parsed = screenshotQuerySchema.safeParse(req.query);
   if (!parsed.success) {
     throw ApiError.badRequest(z.prettifyError(parsed.error));
@@ -66,7 +79,7 @@ async function sendScreenshot(req, res) {
 }
 
 async function streamRunEvents(req, res) {
-  const run = await requireRun(req.params.id);
+  const run = await requireRun(req.params.id, req.user.id);
   res.set({ "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
   res.flushHeaders();
   const send = (event) => res.write(`data: ${JSON.stringify(event)}\n\n`);

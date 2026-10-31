@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { fetchJson, postJson } from '../../api/client.js'
+import { fetchJson, postJson } from '../../../../shared/api/client.js'
 import { SitePreview } from './SitePreview.jsx'
 
 const REPEAT_OPTIONS = [1, 2, 3, 5]
@@ -40,7 +40,7 @@ function Step({ number, title, state, summary, children }) {
   )
 }
 
-function RunSetup({ onRunStarted }) {
+function RunSetup({ onRunStarted, jiraCredentials, jiraPostComments }) {
   const [ticketId, setTicketId] = useState('DEMO-101')
   const [ticket, setTicket] = useState(null)
   const [ticketError, setTicketError] = useState('')
@@ -63,13 +63,63 @@ function RunSetup({ onRunStarted }) {
   const [runError, setRunError] = useState('')
 
   const [knownTickets, setKnownTickets] = useState([])
+  const [ticketFilter, setTicketFilter] = useState('')
+  const [ticketListError, setTicketListError] = useState('')
+  const [loadingTickets, setLoadingTickets] = useState(true)
+  const [loadingMoreTickets, setLoadingMoreTickets] = useState(false)
+  const [ticketNextPage, setTicketNextPage] = useState(null)
   const urlInputRef = useRef(null)
 
   useEffect(() => {
-    fetchJson('/api/tickets')
-      .then(setKnownTickets)
-      .catch((error) => setTicketError(error.message))
-  }, [])
+    let active = true
+
+    const request = jiraCredentials
+      ? postJson('/api/tickets/search', { jiraCredentials })
+      : fetchJson('/api/tickets')
+
+    Promise.resolve()
+      .then(() => {
+        if (!active) return null
+        setKnownTickets([])
+        setTicketListError('')
+        setTicketNextPage(null)
+        setLoadingTickets(true)
+        return request
+      })
+      .then((result) => {
+        if (!active || !result) return
+        setKnownTickets(Array.isArray(result) ? result : result.tickets)
+        setTicketNextPage(Array.isArray(result) ? null : result.nextPageToken)
+      })
+      .catch((error) => {
+        if (active) setTicketListError(error.message)
+      })
+      .finally(() => {
+        if (active) setLoadingTickets(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [jiraCredentials])
+
+  const loadMoreTickets = async () => {
+    if (!jiraCredentials || !ticketNextPage || loadingMoreTickets) return
+    setLoadingMoreTickets(true)
+    setTicketListError('')
+    try {
+      const result = await postJson('/api/tickets/search', {
+        jiraCredentials,
+        nextPageToken: ticketNextPage,
+      })
+      setKnownTickets((current) => [...current, ...result.tickets])
+      setTicketNextPage(result.nextPageToken)
+    } catch (error) {
+      setTicketListError(error.message)
+    } finally {
+      setLoadingMoreTickets(false)
+    }
+  }
 
   const openPreview = async (url, onLoaded) => {
     setPreviewing(true)
@@ -93,14 +143,20 @@ function RunSetup({ onRunStarted }) {
     })
   }
 
-  const loadTicket = async (event) => {
-    event.preventDefault()
+  const loadTicketById = async (id) => {
     setLoadingTicket(true)
     setTicketError('')
     try {
-      const loaded = await fetchJson(`/api/tickets/${encodeURIComponent(ticketId.trim())}`)
+      const loaded = await postJson('/api/tickets/lookup', {
+        ticketId: id.trim(),
+        ...(jiraCredentials && { jiraCredentials }),
+      })
+      setTicketId(loaded.id)
       setTicket(loaded)
-      if (isHttpUrl(loaded.target) && !site) {
+      if (
+        isHttpUrl(loaded.target) &&
+        (!site || site.requestedUrl !== normalizeUrl(loaded.target))
+      ) {
         previewSite(loaded.target)
       } else {
         requestAnimationFrame(() => urlInputRef.current?.focus())
@@ -111,6 +167,15 @@ function RunSetup({ onRunStarted }) {
     }
     setLoadingTicket(false)
   }
+
+  const loadTicket = (event) => {
+    event.preventDefault()
+    return loadTicketById(ticketId)
+  }
+
+  const visibleTickets = knownTickets.filter((known) =>
+    `${known.id} ${known.title}`.toLowerCase().includes(ticketFilter.trim().toLowerCase()),
+  )
 
   const submitUrl = (event) => {
     event.preventDefault()
@@ -165,6 +230,8 @@ function RunSetup({ onRunStarted }) {
         ...(hasCredentials && { credentials: { username, password } }),
         repeat,
         regenerate,
+        ...(jiraCredentials && { jiraCredentials }),
+        ...(jiraCredentials && { postJiraComment: jiraPostComments }),
       })
       onRunStarted(runId)
     } catch (error) {
@@ -181,6 +248,75 @@ function RunSetup({ onRunStarted }) {
     <div className="workspace">
       <div className="setup">
         <Step number={1} title="Ticket" state={ticketState} summary={ticket?.id}>
+          <div className="available-tickets">
+            <div className="available-tickets-heading">
+              <div>
+                <h3>{jiraCredentials ? 'Available Jira tickets' : 'Available sample tickets'}</h3>
+                <p className="hint">
+                  {jiraCredentials
+                    ? 'Select a ticket to review its acceptance criteria.'
+                    : 'Connect Jira to browse your accessible tickets.'}
+                </p>
+              </div>
+              <span className="available-ticket-count">
+                {loadingTickets ? 'Loading' : knownTickets.length}
+              </span>
+            </div>
+            {!loadingTickets && knownTickets.length > 4 && (
+              <input
+                aria-label="Filter available tickets"
+                className="text-input small"
+                onChange={(event) => setTicketFilter(event.target.value)}
+                placeholder="Filter by key or title"
+                type="search"
+                value={ticketFilter}
+              />
+            )}
+            {ticketListError && (
+              <p className="error-banner" role="alert">
+                Could not load available tickets: {ticketListError}
+              </p>
+            )}
+            {!loadingTickets && knownTickets.length === 0 && !ticketListError && (
+              <p className="hint">No tickets found. You can still enter a ticket key below.</p>
+            )}
+            {visibleTickets.length > 0 && (
+              <ul className="available-ticket-list">
+                {visibleTickets.map((known) => (
+                  <li key={known.id}>
+                    <button
+                      aria-pressed={ticket?.id === known.id}
+                      className={ticket?.id === known.id ? 'available-ticket selected' : 'available-ticket'}
+                      disabled={loadingTicket}
+                      onClick={() => {
+                        setTicketId(known.id)
+                        loadTicketById(known.id)
+                      }}
+                      type="button"
+                    >
+                      <span className="available-ticket-copy">
+                        <span className="available-ticket-key">{known.id}</span>
+                        <span className="available-ticket-title">{known.title}</span>
+                      </span>
+                      <span className="available-ticket-meta">
+                        {known.status || known.source}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {jiraCredentials && ticketNextPage && (
+              <button
+                className="link-btn"
+                disabled={loadingMoreTickets}
+                onClick={loadMoreTickets}
+                type="button"
+              >
+                {loadingMoreTickets ? 'Loading tickets...' : 'Load more Jira tickets'}
+              </button>
+            )}
+          </div>
           <form className="input-row" onSubmit={loadTicket}>
             <input
               className="text-input mono"

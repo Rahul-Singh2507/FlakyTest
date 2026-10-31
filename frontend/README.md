@@ -1,16 +1,14 @@
-# React + Vite
+# FlakeTest frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The React 19 dashboard uses Vite and Tailwind CSS. Its source is organized into four layers:
 
-Currently, two official plugins are available:
+- `src/app`: application shell and global styles
+- `src/features`: authentication and dashboard features
+- `src/shared`: reusable API client and UI components
+- `src/main.jsx`: browser entry point
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Run `npm run dev` from this directory. Vite proxies `/api` requests to the backend at `http://localhost:3001`.
 
-## React Compiler
+Users can register or sign in before accessing the dashboard. The backend stores users and revocable, expiring sessions in MongoDB; the session token is held in an HTTP-only cookie.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+After signing in, select **Connect Jira** in the dashboard header and provide your Jira site URL, account email, and API token. Create an Atlassian API token in your Atlassian account's security settings. The connection is verified with Jira before use. Tokens are held in frontend memory only and are sent only to the backend for Jira requests; they are not saved to MongoDB or `.env`, and must be entered again after a page refresh or logout. You can optionally enable posting run summaries as ticket comments.
