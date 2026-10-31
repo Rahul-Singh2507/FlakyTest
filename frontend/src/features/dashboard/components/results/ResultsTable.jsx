@@ -1,7 +1,8 @@
 import { StatusBadge } from '../../../../shared/components/StatusBadge.jsx'
+import { apiUrl } from '../../../../shared/api/client.js'
 
 const screenshotUrl = (runId, resultId, variant) =>
-  `/api/runs/${runId}/screenshots/${resultId}?variant=${variant}`
+  apiUrl(`/api/runs/${runId}/screenshots/${resultId}?variant=${variant}`)
 
 function ScreenshotLinks({ runId, result }) {
   const failureLabel = result.status === 'healed' ? 'Before' : 'Failure'

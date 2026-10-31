@@ -9,7 +9,11 @@ The React 19 dashboard uses Vite and Tailwind CSS. Its source is organized into 
 
 Application styling is processed by Tailwind CSS; shared component selectors use Tailwind `@apply` utilities in `src/app/app.css`.
 
-Run `npm run dev` from this directory. Vite proxies `/api` requests to the backend at `http://localhost:3001`.
+Run `npm run dev` from this directory. Vite proxies `/api` requests to the backend at `http://localhost:3001`; override the target locally with `VITE_API_PROXY_TARGET`.
+
+For a deployed frontend, set `VITE_API_BASE_URL=https://flakytest.onrender.com` in the frontend build environment. The production build then sends API requests, run-event streams, and screenshot requests to the Render backend. The backend must allow the deployed frontend origin: set `FRONTEND_ORIGIN` in the backend environment to the frontend's exact origin (scheme and host, without a path). For local development, this defaults to `http://localhost:5173`.
+
+The browser session uses an HTTP-only cookie and credentialed API requests. Deploy the frontend on the same site as the backend (for example, another `*.onrender.com` host) so the existing `SameSite=Strict` session cookie can be sent. A frontend on a different site needs an explicit cookie/CSRF deployment design; changing `SameSite` alone is not sufficient.
 
 Users can register or sign in before accessing the dashboard. The backend stores users and revocable, expiring sessions in MongoDB; the session token is held in an HTTP-only cookie.
 

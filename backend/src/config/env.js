@@ -12,6 +12,7 @@ const blankAsMissing = (schema) => z.preprocess((value) => (value === "" ? undef
 const envSchema = z.object({
   PORT: blankAsMissing(z.coerce.number().int().positive().default(3001)),
   MONGODB_URI: blankAsMissing(z.string()),
+  FRONTEND_ORIGIN: blankAsMissing(z.url().default("http://localhost:5173")),
   GROQ_API_KEY: blankAsMissing(z.string().optional()),
   JIRA_BASE_URL: blankAsMissing(z.url().optional()),
   JIRA_EMAIL: blankAsMissing(z.string().optional()),
@@ -30,6 +31,7 @@ const paths = {
 
 const settings = {
   port: env.PORT,
+  frontendOrigin: env.FRONTEND_ORIGIN,
   mongo: {
     uri: env.MONGODB_URI,
   },

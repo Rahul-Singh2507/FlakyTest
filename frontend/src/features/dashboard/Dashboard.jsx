@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { fetchJson } from '../../shared/api/client.js'
+import { apiUrl, fetchJson } from '../../shared/api/client.js'
 import { RepairLog } from './components/results/RepairLog.jsx'
 import { ResultsTable } from './components/results/ResultsTable.jsx'
 import { RunHistory } from './components/run/RunHistory.jsx'
@@ -57,7 +57,9 @@ function Dashboard({
   const watchRun = (runId) => {
     resetRunView()
     setRunActive(true)
-    const eventSource = new EventSource(`/api/runs/${runId}/events`)
+    const eventSource = new EventSource(apiUrl(`/api/runs/${runId}/events`), {
+      withCredentials: true,
+    })
     eventSourceRef.current = eventSource
     eventSource.onmessage = (message) => {
       const event = JSON.parse(message.data)
