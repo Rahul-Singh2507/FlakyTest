@@ -1,0 +1,11 @@
+{
+  "id": "SAUCE-201",
+  "title": "Swag Labs storefront: login and cart",
+  "target": "https://www.saucedemo.com/",
+  "acceptanceCriteria": [
+    "User can log in with a valid username and password and see the Products page",
+    "User sees 'Username and password do not match any user in this service' when the password is wrong",
+    "User can add the Sauce Labs Bike Light to the cart and the cart shows 1 item",
+    "User can open the cart after adding the Sauce Labs Backpack and see it listed"
+  ]
+}

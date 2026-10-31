@@ -1,0 +1,10 @@
+{
+  "id": "DEMO-101",
+  "title": "User login and cart functionality",
+  "target": "http://localhost:5174/login",
+  "acceptanceCriteria": [
+    "User can log in with valid email and password and see a welcome message",
+    "User sees 'Invalid credentials' error when entering wrong password",
+    "User can add an item to the cart and see the cart count update"
+  ]
+}

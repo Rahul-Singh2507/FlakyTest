@@ -1,0 +1,12 @@
+{
+  "id": "DEMO-102",
+  "title": "Demo app UI labels: buttons, headings and fields",
+  "target": "http://localhost:5174/login",
+  "acceptanceCriteria": [
+    "Login page shows the heading 'Login' and a button with the text 'Sign in'",
+    "Login page shows input fields labelled 'Email' and 'Password'",
+    "After signing in with valid credentials the page shows a 'Go to Cart' button",
+    "Cart page shows the heading 'Cart (0)' before any item is added",
+    "Cart page lists 'Widget A' priced at '$9.99' with an 'Add to cart' button in the same card"
+  ]
+}
