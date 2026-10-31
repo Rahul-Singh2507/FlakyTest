@@ -1,10 +1,11 @@
-import { settings } from "../../config/env.js";
 import { captureSnapshot } from "./pageSnapshot.js";
 import { describeInteractionTarget, describeTarget, resolveInteractionLocator, resolveLocator } from "./locators.js";
 import { fillTestData } from "../generation/testData.js";
 
 const HEALABLE_ACTIONS = new Set(["fill", "click"]);
 const NETWORK_IDLE_WAIT_MS = 5000;
+const STEP_TIMEOUT_MS = 3000;
+const NAVIGATION_TIMEOUT_MS = 20000;
 
 const settlePage = (page) => page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_WAIT_MS }).catch(() => null);
 
@@ -51,8 +52,8 @@ async function classifyFailure(page, step, error) {
 async function newTestPage(browser) {
   const context = await browser.newContext({ viewport: { width: 1024, height: 720 } });
   const page = await context.newPage();
-  page.setDefaultTimeout(settings.stepTimeoutMs);
-  page.setDefaultNavigationTimeout(settings.navigationTimeoutMs);
+  page.setDefaultTimeout(STEP_TIMEOUT_MS);
+  page.setDefaultNavigationTimeout(NAVIGATION_TIMEOUT_MS);
   return { context, page };
 }
 

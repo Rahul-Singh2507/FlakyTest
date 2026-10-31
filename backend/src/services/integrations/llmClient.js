@@ -2,6 +2,7 @@ import { setTimeout as sleep } from "timers/promises";
 import { settings } from "../../config/env.js";
 
 const GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_MODELS = ["openai/gpt-oss-120b"];
 const MODEL_UNAVAILABLE_STATUSES = new Set([429, 498, 500, 502, 503, 504]);
 const TRANSIENT_STATUSES = new Set([500, 502, 503, 504]);
 const TRANSIENT_RETRY_DELAYS_MS = [3000, 8000];
@@ -60,7 +61,7 @@ async function requestModelWithRetry(model, prompt, responseJsonSchema) {
 
 async function generateJson(prompt, responseJsonSchema) {
   const unavailableModels = [];
-  for (const model of settings.groq.models) {
+  for (const model of GROQ_MODELS) {
     const outcome = await requestModelWithRetry(model, prompt, responseJsonSchema);
     if (!outcome.error) {
       return outcome;

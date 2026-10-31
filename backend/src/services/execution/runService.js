@@ -15,6 +15,8 @@ import { renderSpec } from "../generation/specRenderer.js";
 import { findLabelClicks, generateTests, SUITE_FORMAT_VERSION } from "../generation/testGenerator.js";
 import { executeSteps } from "./testRunner.js";
 
+const HEAL_CONFIDENCE_THRESHOLD = 0.8;
+
 async function saveScreenshot(runId, fileName, screenshot) {
   const relativePath = path.join(runId, fileName);
   await mkdir(path.join(paths.screenshots, runId), { recursive: true });
@@ -33,7 +35,7 @@ async function healAndRerun(browser, runId, site, test, firstAttempt) {
     const stepIndex = attempt.failedStepIndex;
     const failedStep = steps[stepIndex];
     emit({ type: "healing-started", stepIndex, oldLocator: describeInteractionTarget(failedStep.target) });
-    const replacement = await findReplacement(failedStep, attempt.snapshot, settings.healConfidenceThreshold);
+    const replacement = await findReplacement(failedStep, attempt.snapshot, HEAL_CONFIDENCE_THRESHOLD);
     const repairBase = {
       runId,
       testName: test.name,
@@ -46,7 +48,7 @@ async function healAndRerun(browser, runId, site, test, firstAttempt) {
       timestamp: new Date().toISOString(),
     };
 
-    if (repairBase.confidence < settings.healConfidenceThreshold) {
+    if (repairBase.confidence < HEAL_CONFIDENCE_THRESHOLD) {
       rejection = { ...repairBase, outcome: "rejected" };
     } else {
       steps = steps.with(stepIndex, { ...failedStep, target: replacement.target });
@@ -62,7 +64,7 @@ async function healAndRerun(browser, runId, site, test, firstAttempt) {
     ? ""
     : rejection.newLocator === "none"
       ? " Heal rejected: no candidate element found on the page."
-      : ` Heal rejected: best match ${rejection.newLocator} scored ${rejection.confidence}, below threshold ${settings.healConfidenceThreshold}.`;
+      : ` Heal rejected: best match ${rejection.newLocator} scored ${rejection.confidence}, below threshold ${HEAL_CONFIDENCE_THRESHOLD}.`;
   const discardNote = repairs.length > 0 && !attempt.passed ? " Healed locator discarded because the re-run still failed." : "";
   const healNote = `${rejectionNote}${discardNote}`;
   emit({ type: attempt.passed ? "heal-success" : "heal-failed", reason: healNote.trim() || attempt.errorMessage });
