@@ -1,6 +1,4 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '')
-
-const apiUrl = (url) => `${API_BASE_URL}${url.startsWith('/') ? url : `/${url}`}`
+const apiUrl = (url) => (url.startsWith('/') ? url : `/${url}`)
 
 async function fetchJson(url, init) {
   const response = await fetch(apiUrl(url), {

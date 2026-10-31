@@ -11,9 +11,9 @@ Application styling is processed by Tailwind CSS; shared component selectors use
 
 Run `npm run dev` from this directory. Vite proxies `/api` requests to the backend at `http://localhost:3001`; override the target locally with `VITE_API_PROXY_TARGET`.
 
-For a deployed frontend, set `VITE_API_BASE_URL=https://flakytest.onrender.com` in the frontend build environment. The production build then sends API requests, run-event streams, and screenshot requests to the Render backend. The backend must allow the deployed frontend origin: set `FRONTEND_ORIGIN` in the backend environment to the frontend's exact origin (scheme and host, without a path). For local development, this defaults to `http://localhost:5173`.
+For the Vercel deployment, `vercel.json` rewrites `/api` requests to `https://flakytest.onrender.com`. Keep API requests on the frontend's own origin; this covers normal API calls, live run-event streams, and screenshots, and lets the session cookie work with its existing `SameSite=Strict` setting. Do not set `VITE_API_BASE_URL` to the Render URL for this deployment. The backend's `FRONTEND_ORIGIN` setting is only needed for direct cross-origin browser access; local development through Vite's `/api` proxy does not require it.
 
-The browser session uses an HTTP-only cookie and credentialed API requests. Deploy the frontend on the same site as the backend (for example, another `*.onrender.com` host) so the existing `SameSite=Strict` session cookie can be sent. A frontend on a different site needs an explicit cookie/CSRF deployment design; changing `SameSite` alone is not sufficient.
+The browser session uses an HTTP-only cookie. Keeping the API on the Vercel frontend origin avoids cross-site cookie restrictions and does not require weakening the cookie's `SameSite=Strict` protection.
 
 Users can register or sign in before accessing the dashboard. The backend stores users and revocable, expiring sessions in MongoDB; the session token is held in an HTTP-only cookie.
 
