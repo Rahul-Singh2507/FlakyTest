@@ -1,6 +1,6 @@
 import { db } from "../config/database.js";
 
-export function insertRepair(repair) {
+function insertRepair(repair) {
   db.prepare(
     `INSERT INTO repairs
       (runId, testName, stepIndex, oldLocator, newLocator, reason, method, confidence, outcome, timestamp)
@@ -9,6 +9,8 @@ export function insertRepair(repair) {
   ).run(repair);
 }
 
-export function listRepairs(runId) {
+function listRepairs(runId) {
   return db.prepare("SELECT * FROM repairs WHERE runId = ? ORDER BY id").all(runId);
 }
+
+export { insertRepair, listRepairs };

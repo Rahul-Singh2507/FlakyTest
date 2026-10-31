@@ -8,7 +8,7 @@ const channelFor = (runId) => {
   return channel;
 };
 
-export function emitRunEvent(runId, event) {
+function emitRunEvent(runId, event) {
   const channel = channelFor(runId);
   const payload = { ...event, runId, at: new Date().toISOString() };
   channel.history.push(payload);
@@ -18,11 +18,13 @@ export function emitRunEvent(runId, event) {
   }
 }
 
-export const hasRunChannel = (runId) => channels.has(runId);
+const hasRunChannel = (runId) => channels.has(runId);
 
-export function subscribeToRun(runId, listener) {
+function subscribeToRun(runId, listener) {
   const channel = channelFor(runId);
   channel.history.forEach(listener);
   channel.listeners.add(listener);
   return () => channel.listeners.delete(listener);
 }
+
+export { emitRunEvent, hasRunChannel, subscribeToRun };

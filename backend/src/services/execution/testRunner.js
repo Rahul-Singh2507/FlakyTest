@@ -6,9 +6,9 @@ import { fillTestData } from "../generation/testData.js";
 const HEALABLE_ACTIONS = new Set(["fill", "click"]);
 const NETWORK_IDLE_WAIT_MS = 5000;
 
-export const settlePage = (page) => page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_WAIT_MS }).catch(() => null);
+const settlePage = (page) => page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_WAIT_MS }).catch(() => null);
 
-export async function openPage(page, pagePath, site) {
+async function openPage(page, pagePath, site) {
   await page.goto(new URL(pagePath, site.baseUrl).href, { waitUntil: "load" });
   await settlePage(page);
 }
@@ -22,7 +22,7 @@ const stepHandlers = {
   expectText: (page, step, site) => page.getByText(fillTestData(step.value, site)).first().waitFor({ state: "visible" }),
 };
 
-export async function performSteps(page, steps, site) {
+async function performSteps(page, steps, site) {
   for (const step of steps) {
     await stepHandlers[step.action](page, step, site);
   }
@@ -48,7 +48,7 @@ async function classifyFailure(page, step, error) {
   return { kind, message: classificationByKind[kind]() };
 }
 
-export async function newTestPage(browser) {
+async function newTestPage(browser) {
   const context = await browser.newContext({ viewport: { width: 1024, height: 720 } });
   const page = await context.newPage();
   page.setDefaultTimeout(settings.stepTimeoutMs);
@@ -56,7 +56,7 @@ export async function newTestPage(browser) {
   return { context, page };
 }
 
-export async function executeSteps(browser, steps, site) {
+async function executeSteps(browser, steps, site) {
   const { context, page } = await newTestPage(browser);
   const startedAt = Date.now();
   try {
@@ -88,3 +88,5 @@ export async function executeSteps(browser, steps, site) {
     await context.close();
   }
 }
+
+export { settlePage, openPage, performSteps, newTestPage, executeSteps };

@@ -7,7 +7,7 @@ import { renderSpec } from "./specRenderer.js";
 import { TEST_DATA_PLACEHOLDERS } from "./testData.js";
 
 const MAX_GENERATION_ATTEMPTS = 3;
-export const SUITE_FORMAT_VERSION = 3;
+const SUITE_FORMAT_VERSION = 3;
 
 const targetJsonSchema = {
   type: "object",
@@ -174,7 +174,7 @@ const findGenericAssertions = (tests) =>
       )
   );
 
-export const findLabelClicks = (tests) =>
+const findLabelClicks = (tests) =>
   tests.flatMap((test, testIndex) =>
     indexedSteps(test)
       .filter(({ step }) => step.action === "click" && step.target.strategy === "label")
@@ -200,7 +200,7 @@ const findUnknownIds = (tests, snapshots) => {
   );
 };
 
-export const findSuiteProblems = (tests, site, snapshots) => [
+const findSuiteProblems = (tests, site, snapshots) => [
   ...findUnknownPages(tests, site),
   ...findLabelClicks(tests),
   ...findUnknownIds(tests, snapshots),
@@ -259,7 +259,7 @@ const failedGroqSuite = (ticket, error) =>
     generationNote: `Groq could not write this test: ${summarizeLlmError(error)}`,
   }));
 
-export async function generateTests(ticket, site) {
+async function generateTests(ticket, site) {
   const tests = await generateSuiteWithGroq(ticket, site).catch((error) => failedGroqSuite(ticket, error));
   return tests
     .toSorted((left, right) => left.criterionIndex - right.criterionIndex)
@@ -271,3 +271,5 @@ export async function generateTests(ticket, site) {
       specCode: renderSpec(test, site),
     }));
 }
+
+export { SUITE_FORMAT_VERSION, findLabelClicks, findSuiteProblems, generateTests };

@@ -35,7 +35,9 @@ const renderStepByAction = {
   expectText: (step) => `await expect(page.getByText(${renderTestDataLiteral(step.value)}).first()).toBeVisible();`,
 };
 
-export function renderSpec(test, site) {
+function renderSpec(test, site) {
   const body = test.steps.map((step) => `  ${renderStepByAction[step.action](step, site)}`).join("\n");
   return `import { test, expect } from "@playwright/test";\n\ntest(${quote(test.name)}, async ({ page }) => {\n${body}\n});\n`;
 }
+
+export { renderSpec };

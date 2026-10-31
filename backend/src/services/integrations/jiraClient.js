@@ -3,7 +3,7 @@ import { ApiError } from "../../utils/apiError.js";
 
 const { jira } = settings;
 
-export const isJiraConfigured = () => Boolean(jira.baseUrl && jira.email && jira.apiToken);
+const isJiraConfigured = () => Boolean(jira.baseUrl && jira.email && jira.apiToken);
 
 async function jiraRequest(pathname, init = {}) {
   const response = await fetch(new URL(pathname, jira.baseUrl), {
@@ -29,7 +29,7 @@ const collectListItems = (node) =>
 const isAcceptanceHeading = (node) =>
   ["heading", "paragraph"].includes(node.type) && /^\s*acceptance criteria:?\s*$/i.test(nodeText(node));
 
-export function extractAcceptanceCriteria(document) {
+function extractAcceptanceCriteria(document) {
   const blocks = document?.content ?? [];
   const headingIndex = blocks.findIndex(isAcceptanceHeading);
   const nextHeadingOffset = blocks.slice(headingIndex + 1).findIndex((block) => block.type === "heading");
@@ -50,7 +50,7 @@ const criteriaFromField = (value) =>
 
 const targetFromDescription = (document) => nodeText(document ?? { type: "doc" }).match(/\b(?:target|url):\s*(https?:\/\/[^\s<>"]+)/i)?.[1];
 
-export async function fetchJiraTicket(issueKey) {
+async function fetchJiraTicket(issueKey) {
   const fieldNames = ["summary", "description", jira.acceptanceCriteriaField, jira.targetField].filter(Boolean).join(",");
   const issue = await jiraRequest(`/rest/api/3/issue/${encodeURIComponent(issueKey)}?fields=${fieldNames}`);
   const criteriaSource = issue.fields[jira.acceptanceCriteriaField] ?? issue.fields.description;
@@ -64,7 +64,7 @@ export async function fetchJiraTicket(issueKey) {
 
 const adfParagraph = (text, marks = []) => ({ type: "paragraph", content: [{ type: "text", text, marks }] });
 
-export async function postJiraComment(issueKey, summaryLine, resultLines) {
+async function postJiraComment(issueKey, summaryLine, resultLines) {
   await jiraRequest(`/rest/api/3/issue/${encodeURIComponent(issueKey)}/comment`, {
     method: "POST",
     body: JSON.stringify({
@@ -82,3 +82,5 @@ export async function postJiraComment(issueKey, summaryLine, resultLines) {
     }),
   });
 }
+
+export { isJiraConfigured, extractAcceptanceCriteria, fetchJiraTicket, postJiraComment };

@@ -9,9 +9,9 @@ const PREVIEW_JPEG_QUALITY = 70;
 const LOGIN_WAIT_MS = 10000;
 const USERNAME_INPUT_TYPES = new Set(["", "text", "email"]);
 
-export const pagePathOf = (url) => `${url.pathname}${url.search}`;
+const pagePathOf = (url) => `${url.pathname}${url.search}`;
 
-export function siteFromUrl(siteUrl, pages, credentials) {
+function siteFromUrl(siteUrl, pages, credentials) {
   const url = new URL(siteUrl);
   return {
     name: url.host,
@@ -48,7 +48,7 @@ const withBrowserPage = async (work) => {
   }
 };
 
-export const previewSite = (siteUrl) =>
+const previewSite = (siteUrl) =>
   withBrowserPage(async (page) => {
     const response = await page
       .goto(siteUrl, { waitUntil: "load" })
@@ -68,7 +68,7 @@ export const previewSite = (siteUrl) =>
     };
   });
 
-export function findLoginForm(elements) {
+function findLoginForm(elements) {
   const passwordIndex = elements.findIndex((element) => element.tag === "input" && element.type === "password");
   if (passwordIndex === -1) {
     return null;
@@ -106,7 +106,7 @@ async function visitPages(page, site, pagePaths) {
 
 const toSnapshotMap = (visits) => Object.fromEntries(visits.map((visit) => [visit.pagePath, visit.elements]));
 
-export const exploreSite = (site) =>
+const exploreSite = (site) =>
   withBrowserPage(async (page) => {
     const publicVisits = await visitPages(page, site, site.pages);
     const description = publicVisits[0]?.title || site.name;
@@ -143,3 +143,5 @@ export const exploreSite = (site) =>
       },
     };
   });
+
+export { pagePathOf, siteFromUrl, previewSite, findLoginForm, exploreSite };

@@ -1,10 +1,10 @@
 import Database from "better-sqlite3";
 import { paths } from "./env.js";
 
-export const db = new Database(paths.database);
+const db = new Database(paths.database);
 db.pragma("journal_mode = WAL");
 
-export function initDb() {
+function initDb() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS runs (
       id TEXT PRIMARY KEY,
@@ -68,3 +68,5 @@ function addColumnIfMissing(table, column, definition) {
     db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
   }
 }
+
+export { db, initDb };

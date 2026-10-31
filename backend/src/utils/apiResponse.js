@@ -1,4 +1,4 @@
-export class ApiResponse {
+class ApiResponse {
   static success(res, data, status = 200) {
     return res.status(status).json({ success: true, data });
   }
@@ -11,3 +11,5 @@ export class ApiResponse {
     return res.status(status).json({ success: false, error: { message, details } });
   }
 }
+
+export { ApiResponse };

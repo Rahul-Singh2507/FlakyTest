@@ -27,7 +27,7 @@ const envSchema = z.object({
 
 const env = envSchema.parse(process.env);
 
-export const paths = {
+const paths = {
   backendRoot,
   database: path.join(backendRoot, "data", "flaketest.db"),
   mockTicket: path.join(backendRoot, "data", "mock-ticket.json"),
@@ -37,7 +37,7 @@ export const paths = {
 
 const commaList = (value) => value.split(",").map((item) => item.trim()).filter(Boolean);
 
-export const settings = {
+const settings = {
   port: env.PORT,
   healConfidenceThreshold: env.HEAL_CONFIDENCE_THRESHOLD,
   stepTimeoutMs: env.STEP_TIMEOUT_MS,
@@ -55,3 +55,5 @@ export const settings = {
     postComment: env.JIRA_POST_COMMENT,
   },
 };
+
+export { paths, settings };

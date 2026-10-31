@@ -6,7 +6,7 @@ const pagePath = z.string().startsWith("/");
 
 const MAX_SITE_PAGES = 8;
 
-export const startRunSchema = z.object({
+const startRunSchema = z.object({
   ticketId: ticketIdSchema,
   repeat: z.number().int().min(1).max(5).default(1),
   regenerate: z.boolean().default(false),
@@ -15,6 +15,8 @@ export const startRunSchema = z.object({
   credentials: z.object({ username: z.string().min(1), password: z.string().min(1) }).optional(),
 });
 
-export const screenshotQuerySchema = z.object({
+const screenshotQuerySchema = z.object({
   variant: z.enum(["failure", "after"]).default("failure"),
 });
+
+export { startRunSchema, screenshotQuerySchema };

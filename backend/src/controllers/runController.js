@@ -21,7 +21,7 @@ const requireRun = (runId) => {
   return run;
 };
 
-export async function startNewRun(req, res) {
+async function startNewRun(req, res) {
   const parsed = startRunSchema.safeParse(req.body);
   if (!parsed.success) {
     throw ApiError.badRequest(z.prettifyError(parsed.error));
@@ -37,21 +37,21 @@ export async function startNewRun(req, res) {
   ApiResponse.success(res, { runId: startRun(ticket, siteFromUrl(siteUrl, pages, credentials), options) }, 202);
 }
 
-export function listRunHistory(req, res) {
+function listRunHistory(req, res) {
   ApiResponse.success(res, listRuns());
 }
 
-export function showRun(req, res) {
+function showRun(req, res) {
   const run = requireRun(req.params.id);
   ApiResponse.success(res, { ...run, results: listResults(run.id) });
 }
 
-export function listRunRepairs(req, res) {
+function listRunRepairs(req, res) {
   requireRun(req.params.id);
   ApiResponse.success(res, listRepairs(req.params.id));
 }
 
-export function sendScreenshot(req, res) {
+function sendScreenshot(req, res) {
   const parsed = screenshotQuerySchema.safeParse(req.query);
   if (!parsed.success) {
     throw ApiError.badRequest(z.prettifyError(parsed.error));
@@ -65,7 +65,7 @@ export function sendScreenshot(req, res) {
   res.sendFile(path.join(paths.screenshots, screenshotPath));
 }
 
-export function streamRunEvents(req, res) {
+function streamRunEvents(req, res) {
   const run = requireRun(req.params.id);
   res.set({ "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
   res.flushHeaders();
@@ -85,3 +85,5 @@ export function streamRunEvents(req, res) {
   });
   req.on("close", unsubscribe);
 }
+
+export { startNewRun, listRunHistory, showRun, listRunRepairs, sendScreenshot, streamRunEvents };

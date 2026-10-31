@@ -197,7 +197,7 @@ async function executeRun(runId, ticket, site, { repeat, regenerate }) {
   }
 }
 
-export function startRun(ticket, site, options) {
+function startRun(ticket, site, options) {
   const runId = randomUUID();
   createRun({ id: runId, ticketId: ticket.id, repeatCount: options.repeat, siteName: site.name, siteUrl: site.baseUrl });
   emitRunEvent(runId, { type: "run-started", ticketId: ticket.id });
@@ -212,3 +212,5 @@ export function startRun(ticket, site, options) {
     });
   return runId;
 }
+
+export { startRun };

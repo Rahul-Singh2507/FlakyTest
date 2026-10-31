@@ -7,7 +7,7 @@ import { fetchJiraTicket, isJiraConfigured } from "../integrations/jiraClient.js
 
 const readTicketFile = async (filePath) => ticketSchema.parse(JSON.parse(await readFile(filePath, "utf8")));
 
-export async function listMockTickets() {
+async function listMockTickets() {
   const extraFiles = (await readdir(paths.mockTickets)).filter((fileName) => fileName.endsWith(".json"));
   const tickets = await Promise.all([
     readTicketFile(paths.mockTicket),
@@ -30,6 +30,8 @@ const fetchJiraOrMock = (ticketId) =>
     .then((ticket) => ({ ...ticket, source: "jira" }))
     .catch((error) => (error.status === 404 ? loadMockTicket(ticketId) : Promise.reject(error)));
 
-export async function getTicket(ticketId) {
+async function getTicket(ticketId) {
   return isJiraConfigured() ? fetchJiraOrMock(ticketId) : loadMockTicket(ticketId);
 }
+
+export { listMockTickets, getTicket };

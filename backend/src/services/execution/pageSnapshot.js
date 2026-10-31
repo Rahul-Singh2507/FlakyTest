@@ -58,4 +58,6 @@ function collectVisibleElements() {
     }));
 }
 
-export const captureSnapshot = (page) => page.evaluate(collectVisibleElements);
+const captureSnapshot = (page) => page.evaluate(collectVisibleElements);
+
+export { captureSnapshot };

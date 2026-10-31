@@ -33,7 +33,7 @@ function levenshteinDistance(left, right) {
   return previousRow[right.length];
 }
 
-export function stringSimilarity(left, right) {
+function stringSimilarity(left, right) {
   const longestLength = Math.max(left.length, right.length, 1);
   return 1 - levenshteinDistance(left, right) / longestLength;
 }
@@ -67,7 +67,7 @@ function scoreCandidate(element, oldName, oldId, roleCandidateCount) {
   return signals.reduce((best, signal) => (signal.confidence > best.confidence ? signal : best));
 }
 
-export function findHeuristicMatch(target, snapshot) {
+function findHeuristicMatch(target, snapshot) {
   const candidates = snapshot.filter((element) =>
     target.strategy === "role" ? element.role === target.role : INTERACTIVE_ROLES.has(element.role)
   );
@@ -111,7 +111,7 @@ async function findLlmMatch(step, snapshot) {
     : null;
 }
 
-export async function findReplacement(step, snapshot, threshold) {
+async function findReplacement(step, snapshot, threshold) {
   const heuristicMatch = findHeuristicMatch(step.target, snapshot);
   const needsLlm = isLlmConfigured() && (heuristicMatch?.confidence ?? 0) < threshold;
   const llmMatch = needsLlm ? await findLlmMatch(step, snapshot).catch(() => null) : null;
@@ -119,3 +119,5 @@ export async function findReplacement(step, snapshot, threshold) {
     .filter(Boolean)
     .reduce((best, match) => (match.confidence > (best?.confidence ?? -1) ? match : best), null);
 }
+
+export { stringSimilarity, findHeuristicMatch, findReplacement };

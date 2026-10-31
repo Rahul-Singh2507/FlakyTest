@@ -7,7 +7,7 @@ const parseResult = (row) => ({
   steps: JSON.parse(row.steps),
 });
 
-export function insertTestResult(result) {
+function insertTestResult(result) {
   const info = db
     .prepare(
       `INSERT INTO test_results
@@ -26,13 +26,15 @@ export function insertTestResult(result) {
   return Number(info.lastInsertRowid);
 }
 
-export function listResults(runId) {
+function listResults(runId) {
   return db
     .prepare("SELECT * FROM test_results WHERE runId = ? ORDER BY testIndex")
     .all(runId)
     .map(parseResult);
 }
 
-export function findResult(runId, resultId) {
+function findResult(runId, resultId) {
   return db.prepare("SELECT * FROM test_results WHERE runId = ? AND id = ?").get(runId, resultId);
 }
+
+export { insertTestResult, listResults, findResult };

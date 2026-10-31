@@ -13,9 +13,9 @@ const isModelUnavailable = (error) =>
 // Groq answers 400 json_validate_failed when the model's output does not match the schema; a retry usually succeeds.
 const isTransient = (error) => TRANSIENT_STATUSES.has(error?.status) || error?.code === "json_validate_failed";
 
-export const isLlmConfigured = () => Boolean(settings.groq.apiKey);
+const isLlmConfigured = () => Boolean(settings.groq.apiKey);
 
-export const summarizeLlmError = (error) =>
+const summarizeLlmError = (error) =>
   (error.message.match(/"message":\s*"([^"\\]{0,160})/)?.[1] ?? error.message.slice(0, 160)).trim();
 
 async function groqError(response) {
@@ -58,7 +58,7 @@ async function requestModelWithRetry(model, prompt, responseJsonSchema) {
   return outcome;
 }
 
-export async function generateJson(prompt, responseJsonSchema) {
+async function generateJson(prompt, responseJsonSchema) {
   const unavailableModels = [];
   for (const model of settings.groq.models) {
     const outcome = await requestModelWithRetry(model, prompt, responseJsonSchema);
@@ -72,3 +72,5 @@ export async function generateJson(prompt, responseJsonSchema) {
   }
   throw new Error(`Every configured Groq model is unavailable: ${unavailableModels.join("; ")}`);
 }
+
+export { isLlmConfigured, summarizeLlmError, generateJson };
