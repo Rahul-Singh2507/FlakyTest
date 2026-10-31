@@ -1,4 +1,5 @@
 import path from "path";
+import { z } from "zod";
 import { paths } from "../config/env.js";
 import { findRun, listRuns } from "../models/runModel.js";
 import { findResult, listResults } from "../models/testResultModel.js";
@@ -10,7 +11,6 @@ import { siteFromUrl } from "../services/sites/siteExplorer.js";
 import { getTicket } from "../services/tickets/ticketService.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
-import { parseOrThrow } from "../validators/parseOrThrow.js";
 import { screenshotQuerySchema, startRunSchema } from "../validators/runSchemas.js";
 
 const requireRun = (runId) => {
@@ -22,7 +22,11 @@ const requireRun = (runId) => {
 };
 
 export async function startNewRun(req, res) {
-  const { ticketId, siteUrl, pages, credentials, ...options } = parseOrThrow(startRunSchema, req.body);
+  const parsed = startRunSchema.safeParse(req.body);
+  if (!parsed.success) {
+    throw ApiError.badRequest(z.prettifyError(parsed.error));
+  }
+  const { ticketId, siteUrl, pages, credentials, ...options } = parsed.data;
   if (!isLlmConfigured()) {
     throw new ApiError(503, "GROQ_API_KEY is not set. Test generation needs Groq, add the key to backend/.env");
   }
@@ -48,7 +52,11 @@ export function listRunRepairs(req, res) {
 }
 
 export function sendScreenshot(req, res) {
-  const { variant } = parseOrThrow(screenshotQuerySchema, req.query);
+  const parsed = screenshotQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    throw ApiError.badRequest(z.prettifyError(parsed.error));
+  }
+  const { variant } = parsed.data;
   const result = findResult(req.params.id, req.params.testId);
   const screenshotPath = result?.[variant === "after" ? "afterScreenshotPath" : "screenshotPath"];
   if (!screenshotPath) {
