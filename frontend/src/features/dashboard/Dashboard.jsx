@@ -18,6 +18,7 @@ function Dashboard({
   const [view, setView] = useState('main')
   const [showJiraSettings, setShowJiraSettings] = useState(false)
   const [events, setEvents] = useState([])
+  const [runActive, setRunActive] = useState(false)
   const [runDetail, setRunDetail] = useState(null)
   const [repairs, setRepairs] = useState([])
   const [loadError, setLoadError] = useState('')
@@ -26,9 +27,19 @@ function Dashboard({
 
   useEffect(() => () => eventSourceRef.current?.close(), [])
 
+  useEffect(() => {
+    if (view !== 'main' || (!runActive && !runDetail)) return undefined
+
+    const frame = requestAnimationFrame(() =>
+      runOutputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    )
+    return () => cancelAnimationFrame(frame)
+  }, [runActive, runDetail, view])
+
   const resetRunView = () => {
     eventSourceRef.current?.close()
     setEvents([])
+    setRunActive(false)
     setRunDetail(null)
     setRepairs([])
     setLoadError('')
@@ -45,9 +56,7 @@ function Dashboard({
 
   const watchRun = (runId) => {
     resetRunView()
-    requestAnimationFrame(() =>
-      runOutputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
-    )
+    setRunActive(true)
     const eventSource = new EventSource(`/api/runs/${runId}/events`)
     eventSourceRef.current = eventSource
     eventSource.onmessage = (message) => {
@@ -55,8 +64,14 @@ function Dashboard({
       setEvents((previous) => [...previous, event])
       if (event.type === 'run-completed') {
         eventSource.close()
+        setRunActive(false)
         loadRun(runId)
       }
+    }
+    eventSource.onerror = () => {
+      eventSource.close()
+      setRunActive(false)
+      setLoadError('The live run connection was interrupted. Check History for the final results.')
     }
   }
 
@@ -128,10 +143,20 @@ function Dashboard({
             onRunStarted={watchRun}
           />
 
-          <div ref={runOutputRef} className="run-output">
+          <div
+            ref={runOutputRef}
+            className={runActive || runDetail || loadError ? 'run-output run-output-visible' : 'run-output'}
+            aria-live="polite"
+          >
             {loadError && <p className="error-banner">{loadError}</p>}
 
             {events.length > 0 && !runDetail && <RunProgress events={events} />}
+            {runActive && events.length === 0 && (
+              <section className="run-progress">
+                <h2>Starting test run</h2>
+                <p className="empty">Preparing the browser and generated test cases...</p>
+              </section>
+            )}
 
             {runDetail && (
               <>

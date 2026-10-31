@@ -96,6 +96,7 @@ async function runSingleTest(browser, runId, site, test, testIndex, repeatCount)
     extraAttempts.push(await executeSteps(browser, finalSteps, site));
   }
   const attempts = [finalAttempt, ...extraAttempts].map((attempt) => (attempt.passed ? "passed" : "failed"));
+  const screenshotAttempt = finalAttempt.passed ? firstAttempt : finalAttempt;
 
   return {
     status,
@@ -105,8 +106,15 @@ async function runSingleTest(browser, runId, site, test, testIndex, repeatCount)
     duration: firstAttempt.durationMs + (healing ? finalAttempt.durationMs : 0),
     errorMessage: finalAttempt.passed ? null : `${finalAttempt.errorMessage}.${healing?.healNote ?? ""}`,
     failureKind: finalAttempt.passed ? null : finalAttempt.failureKind,
-    screenshotPath: firstAttempt.passed ? null : await saveScreenshot(runId, `${testIndex}-failure.png`, (finalAttempt.passed ? firstAttempt : finalAttempt).screenshot),
-    afterScreenshotPath: healing && finalAttempt.passed ? await saveScreenshot(runId, `${testIndex}-after.png`, finalAttempt.screenshot) : null,
+    screenshotWarning: screenshotAttempt.warning,
+    screenshotPath:
+      !firstAttempt.passed && screenshotAttempt.screenshot
+        ? await saveScreenshot(runId, `${testIndex}-failure.png`, screenshotAttempt.screenshot)
+        : null,
+    afterScreenshotPath:
+      healing && finalAttempt.passed && finalAttempt.screenshot
+        ? await saveScreenshot(runId, `${testIndex}-after.png`, finalAttempt.screenshot)
+        : null,
   };
 }
 

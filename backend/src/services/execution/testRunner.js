@@ -6,6 +6,7 @@ const HEALABLE_ACTIONS = new Set(["fill", "click"]);
 const NETWORK_IDLE_WAIT_MS = 5000;
 const STEP_TIMEOUT_MS = 3000;
 const NAVIGATION_TIMEOUT_MS = 20000;
+const SCREENSHOT_TIMEOUT_MS = 15000;
 
 const settlePage = (page) => page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_WAIT_MS }).catch(() => null);
 
@@ -13,7 +14,21 @@ async function openPage(page, pagePath, site) {
   await page.goto(new URL(pagePath, site.baseUrl).href, { waitUntil: "load" });
   await settlePage(page);
 }
-const SCREENSHOT_OPTIONS = { animations: "disabled", caret: "hide" };
+const SCREENSHOT_OPTIONS = {
+  animations: "disabled",
+  caret: "hide",
+  timeout: SCREENSHOT_TIMEOUT_MS,
+};
+
+async function captureScreenshot(page) {
+  try {
+    return { screenshot: await page.screenshot(SCREENSHOT_OPTIONS), warning: null };
+  } catch (error) {
+    const warning = `Screenshot unavailable after ${SCREENSHOT_TIMEOUT_MS}ms: ${error.message.split("\n")[0]}`;
+    console.warn(warning);
+    return { screenshot: null, warning };
+  }
+}
 
 const stepHandlers = {
   goto: (page, step, site) => openPage(page, step.path, site),
@@ -68,6 +83,7 @@ async function executeSteps(browser, steps, site) {
       );
       if (error) {
         const failure = await classifyFailure(page, step, error);
+        const screenshot = await captureScreenshot(page);
         return {
           passed: false,
           durationMs: Date.now() - startedAt,
@@ -75,19 +91,19 @@ async function executeSteps(browser, steps, site) {
           failureKind: failure.kind,
           errorMessage: `Step ${stepIndex + 1} (${step.action}): ${failure.message}`,
           snapshot: failure.kind === "locator-missing" ? await captureSnapshot(page) : [],
-          screenshot: await page.screenshot(SCREENSHOT_OPTIONS),
+          ...screenshot,
         };
       }
     }
-    await page.evaluate(() => document.fonts.ready);
+    const screenshot = await captureScreenshot(page);
     return {
       passed: true,
       durationMs: Date.now() - startedAt,
-      screenshot: await page.screenshot(SCREENSHOT_OPTIONS),
+      ...screenshot,
     };
   } finally {
     await context.close();
   }
 }
 
-export { settlePage, openPage, performSteps, newTestPage, executeSteps };
+export { settlePage, openPage, performSteps, newTestPage, executeSteps, captureScreenshot };

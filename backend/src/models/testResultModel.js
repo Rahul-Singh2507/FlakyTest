@@ -14,6 +14,7 @@ const testResultSchema = new mongoose.Schema(
     attempts: { type: [String], required: true },
     duration: { type: Number, required: true },
     errorMessage: { type: String, default: null },
+    screenshotWarning: { type: String, default: null },
     failureKind: { type: String, default: null },
     screenshotPath: { type: String, default: null },
     afterScreenshotPath: { type: String, default: null },

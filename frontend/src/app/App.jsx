@@ -4,12 +4,47 @@ import { getCurrentUser, logout } from '../features/auth/authApi.js'
 import { Dashboard } from '../features/dashboard/Dashboard.jsx'
 import { LandingPage } from '../features/landing/LandingPage.jsx'
 
+const JIRA_SESSION_KEY = 'sentinelqa_jira_credentials'
+
+function readJiraSession() {
+  try {
+    const savedCredentials = sessionStorage.getItem(JIRA_SESSION_KEY)
+    if (!savedCredentials) {
+      return { credentials: null, error: '' }
+    }
+
+    const credentials = JSON.parse(savedCredentials)
+    if (
+      typeof credentials?.baseUrl !== 'string' ||
+      typeof credentials?.email !== 'string' ||
+      typeof credentials?.apiToken !== 'string'
+    ) {
+      throw new Error('Saved Jira credentials are incomplete.')
+    }
+    return { credentials, error: '' }
+  } catch (error) {
+    try {
+      sessionStorage.removeItem(JIRA_SESSION_KEY)
+    } catch (storageError) {
+      return {
+        credentials: null,
+        error: `Saved Jira credentials could not be cleared: ${storageError.message}`,
+      }
+    }
+    return {
+      credentials: null,
+      error: `Saved Jira credentials could not be restored: ${error.message}`,
+    }
+  }
+}
+
 function App() {
   const [user, setUser] = useState(null)
   const [checkingSession, setCheckingSession] = useState(true)
   const [authError, setAuthError] = useState('')
   const [authMode, setAuthMode] = useState(null)
-  const [jiraCredentials, setJiraCredentials] = useState(null)
+  const [jiraSession, setJiraSession] = useState(readJiraSession)
+  const jiraCredentials = jiraSession.credentials
   const [jiraPostComments, setJiraPostComments] = useState(false)
 
   useEffect(() => {
@@ -40,7 +75,7 @@ function App() {
     try {
       await logout()
       setUser(null)
-      setJiraCredentials(null)
+      updateJiraCredentials(null)
       setJiraPostComments(false)
       setAuthError('')
     } catch (error) {
@@ -51,6 +86,22 @@ function App() {
   const handleAuthenticated = (authenticatedUser) => {
     setUser(authenticatedUser)
     setAuthError('')
+  }
+
+  const updateJiraCredentials = (credentials) => {
+    try {
+      if (credentials) {
+        sessionStorage.setItem(JIRA_SESSION_KEY, JSON.stringify(credentials))
+      } else {
+        sessionStorage.removeItem(JIRA_SESSION_KEY)
+      }
+      setJiraSession({ credentials, error: '' })
+    } catch (error) {
+      setJiraSession({
+        credentials,
+        error: `Could not save Jira credentials for this tab: ${error.message}`,
+      })
+    }
   }
 
   if (checkingSession) {
@@ -87,6 +138,11 @@ function App() {
 
   return (
     <>
+      {jiraSession.error && (
+        <p className="app-error" role="alert">
+          {jiraSession.error}
+        </p>
+      )}
       {authError && (
         <p className="app-error">
           {authError}
@@ -95,7 +151,7 @@ function App() {
       <Dashboard
         jiraCredentials={jiraCredentials}
         jiraPostComments={jiraPostComments}
-        onJiraCredentialsChange={setJiraCredentials}
+        onJiraCredentialsChange={updateJiraCredentials}
         onJiraPostCommentsChange={setJiraPostComments}
         onLogout={handleLogout}
         user={user}

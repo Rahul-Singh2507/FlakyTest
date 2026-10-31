@@ -112,7 +112,9 @@ function ResultsTable({ run }) {
                 {result.flaky && <StatusBadge status="flaky" />}
               </td>
               <td>{result.duration}ms</td>
-              <td className="error-cell">{result.errorMessage ?? '—'}</td>
+              <td className={result.errorMessage ? 'error-cell' : ''}>
+                {result.errorMessage ?? result.screenshotWarning ?? '—'}
+              </td>
               <td>
                 <ScreenshotLinks runId={run.id} result={result} />
               </td>

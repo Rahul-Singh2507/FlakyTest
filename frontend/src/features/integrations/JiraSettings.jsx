@@ -126,8 +126,8 @@ function JiraSettings({
 
           <p className="integration-help">
             Create an Atlassian API token from your Atlassian account security settings. Use your
-            Jira account email and keep the token private. It is not stored in the database and is
-            cleared on page refresh or logout.
+            Jira account email and keep the token private. It is not stored in the database; it is
+            kept in this browser tab until you disconnect, log out, or close the tab.
           </p>
 
           {error && (

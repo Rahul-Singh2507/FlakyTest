@@ -27,9 +27,9 @@ const toPagePath = (value, origin) => {
   return trimmed.startsWith('/') ? trimmed : `/${trimmed}`
 }
 
-function Step({ number, title, state, summary, children }) {
+function Step({ number, title, state, summary, stepRef, children }) {
   return (
-    <section className={`step step-${state}`}>
+    <section className={`step step-${state}`} ref={stepRef}>
       <header className="step-header">
         <span className="step-number">{state === 'done' ? '✓' : number}</span>
         <h2>{title}</h2>
@@ -69,6 +69,7 @@ function RunSetup({ onRunStarted, jiraCredentials, jiraPostComments }) {
   const [loadingMoreTickets, setLoadingMoreTickets] = useState(false)
   const [ticketNextPage, setTicketNextPage] = useState(null)
   const urlInputRef = useRef(null)
+  const websiteStepRef = useRef(null)
 
   useEffect(() => {
     let active = true
@@ -153,6 +154,9 @@ function RunSetup({ onRunStarted, jiraCredentials, jiraPostComments }) {
       })
       setTicketId(loaded.id)
       setTicket(loaded)
+      requestAnimationFrame(() =>
+        websiteStepRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+      )
       if (
         isHttpUrl(loaded.target) &&
         (!site || site.requestedUrl !== normalizeUrl(loaded.target))
@@ -369,6 +373,7 @@ function RunSetup({ onRunStarted, jiraCredentials, jiraPostComments }) {
           title="Website"
           state={websiteState}
           summary={site && !siteIsStale ? new URL(site.url).host : null}
+          stepRef={websiteStepRef}
         >
           {websiteState === 'locked' ? (
             <p className="hint">Load a ticket first, then enter the website it should be tested on.</p>

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { StatusBadge } from '../../../../shared/components/StatusBadge.jsx'
 
 const HEALING_EVENT_TYPES = new Set([
@@ -41,22 +42,43 @@ function collectTestStatuses(events) {
 
 function RunProgress({ events }) {
   const testStatuses = collectTestStatuses(events)
+  const activeTest = testStatuses.find(([, test]) => test.status === 'running')
+  const activeTestIndex = activeTest?.[0]
+  const activeTestRef = useRef(null)
   const healingEvents = events.filter((event) => HEALING_EVENT_TYPES.has(event.type))
   const isGenerating = events.at(-1).type === 'generating-tests'
   const generationNotes = events
     .filter((event) => event.type === 'tests-generated')
     .flatMap((event) => event.tests.map((test) => test.generationNote))
 
+  useEffect(() => {
+    if (!activeTestRef.current) return
+
+    const bounds = activeTestRef.current.getBoundingClientRect()
+    if (bounds.top < 0 || bounds.bottom > window.innerHeight) {
+      activeTestRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [activeTestIndex])
+
   return (
     <section className="run-progress">
       <h2>Run in Progress</h2>
       {isGenerating && <p className="empty">Generating tests from acceptance criteria...</p>}
+      {activeTest && (
+        <p aria-live="polite" className="active-test-label">
+          Now running test {Number(activeTest[0]) + 1}: {activeTest[1].name}
+        </p>
+      )}
       {generationNotes.length > 0 && (
         <p className="empty">{[...new Set(generationNotes)].join(' · ')}</p>
       )}
       <div className="progress-list">
         {testStatuses.map(([testIndex, test]) => (
-          <div key={testIndex} className={`progress-item ${test.status}`}>
+          <div
+            key={testIndex}
+            className={`progress-item ${test.status}`}
+            ref={test.status === 'running' ? activeTestRef : null}
+          >
             <span className="progress-name">{test.name}</span>
             {test.flaky && <StatusBadge status="flaky" />}
             <StatusBadge status={test.status} />
