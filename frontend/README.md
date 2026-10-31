@@ -15,6 +15,8 @@ For the Vercel deployment, `vercel.json` rewrites `/api` requests to `https://fl
 
 The browser session uses an HTTP-only cookie. Keeping the API on the Vercel frontend origin avoids cross-site cookie restrictions and does not require weakening the cookie's `SameSite=Strict` protection.
 
+The backend runs Playwright Chromium for website previews and test runs. For Render, deploy it using the Docker runtime and `backend/Dockerfile` (or set the service root directory to `backend` and use `Dockerfile`). The image installs the Chromium browser and its operating-system dependencies, which are required by Playwright.
+
 Users can register or sign in before accessing the dashboard. The backend stores users and revocable, expiring sessions in MongoDB; the session token is held in an HTTP-only cookie.
 
 After signing in, select **Connect Jira** in the dashboard header and provide your Jira site URL, account email, and API token. Create an Atlassian API token in your Atlassian account's security settings. The connection is verified with Jira before use. Credentials are stored in the current browser tab's session storage so they survive reloads, and are cleared when you disconnect, log out, or close the tab. They are not saved to MongoDB or `.env`. You can optionally enable posting run summaries as ticket comments.
